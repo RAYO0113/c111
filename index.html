@@ -15,7 +15,7 @@
   }
 
   /* 開啟投屏模式時，基礎字體變大 */
-  body.proj-mode { --base-size: 36px; }
+  body.proj-mode { --base-size: 32px; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -27,7 +27,7 @@
   }
 
   /* 頂部標題與投屏按鈕 */
-  header { background: var(--ink); color: var(--paper); padding: 40px 24px 30px; text-align: center; position: relative; overflow: hidden; }
+  header { background: var(--ink); color: var(--paper); padding: 32px 24px 30px; text-align: center; position: relative; overflow: hidden; }
   header::before { content: '國'; position: absolute; font-family: 'Noto Serif TC', serif; font-size: 300px; font-weight: 900; color: rgba(255,255,255,0.04); right: -40px; top: -60px; line-height: 1; }
   .header-label { font-size: 11px; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-bottom: 10px; }
   header h1 { font-family: 'Noto Serif TC', serif; font-size: clamp(22px, 4vw, 36px); font-weight: 900; letter-spacing: 2px; }
@@ -186,8 +186,25 @@
   .class-tabs { display: flex; gap: 4px; margin-bottom: 14px; flex-wrap: wrap; }
   .class-tab { padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1.5px solid var(--border); background: white; color: var(--muted); font-family: 'Noto Sans TC', sans-serif; transition: all .15s; }
   .class-tab.active { background: var(--ink); color: var(--gold); border-color: var(--ink); font-weight: 700; }
+
+  /* 快速跳轉側邊欄 */
+  #qnav-toggle { position: fixed; bottom: 140px; left: 0; background: var(--ink); color: var(--gold); border: none; border-radius: 0 12px 12px 0; padding: 10px 8px; cursor: pointer; font-size: 11px; writing-mode: vertical-rl; letter-spacing: 2px; z-index: 1000; font-family: 'Noto Serif TC', serif; opacity: 0.6; transition: opacity .2s; }
+  #qnav-toggle:hover { opacity: 1; }
+  #qnav-panel { position: fixed; left: -220px; top: 0; bottom: 0; width: 220px; background: white; border-right: 2px solid var(--border); box-shadow: 4px 0 20px rgba(0,0,0,0.12); z-index: 998; transition: left .3s ease; overflow-y: auto; padding: 16px 12px; }
+  #qnav-panel.open { left: 0; }
+  .qnav-header { font-family: 'Noto Serif TC', serif; font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .qnav-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--muted); }
+  .qnav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .qnav-btn { height: 32px; border-radius: 5px; border: 1px solid var(--border); background: white; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; font-family: 'Noto Serif TC', serif; transition: all .12s; }
+  .qnav-btn:hover { background: var(--ink); color: var(--gold); border-color: var(--ink); }
+  .qnav-btn.current { background: var(--gold); color: white; border-color: var(--gold); }
+
+  /* 選項錯誤分析小字 */
+  .opt-hint { display: block; font-size: 11px; color: rgba(140,120,100,0.75); margin-top: 3px; line-height: 1.4; letter-spacing: 0.2px; }
+  body.proj-mode .opt-hint { font-size: calc(var(--base-size) * 0.5); color: rgba(120,100,80,0.7); }
   body::after { content: '蘇瑞媛老師'; position: fixed; bottom: 32px; right: 28px; font-family: 'Noto Serif TC', serif; font-size: 13px; font-weight: 500; color: rgba(200,147,26,0.35); letter-spacing: 3px; pointer-events: none; z-index: 9999; writing-mode: vertical-rl; text-orientation: mixed; user-select: none; }
 </style>
+</head>
 <body>
 
 <header>
@@ -350,6 +367,13 @@
 
 </div>
 
+<!-- 快速跳轉側邊欄 -->
+<button id="qnav-toggle" onclick="toggleQNav()">快速跳題</button>
+<div id="qnav-panel">
+  <div class="qnav-header">快速跳轉<button class="qnav-close" onclick="toggleQNav()">×</button></div>
+  <div class="qnav-grid" id="qnav-grid"></div>
+</div>
+
 <!-- 班級進度抽屜 -->
 <button id="prog-toggle" onclick="toggleDrawer()">班級進度</button>
 <div id="prog-drawer">
@@ -389,6 +413,34 @@ function cycleState(n){const d=loadProgress(currentClass);d[n]=((d[n]||0)+1)%3;s
 function clearClass(){if(!confirm(`確定清空「${currentClass}」的進度？`))return;localStorage.removeItem(storeKey(currentClass));renderGrid();}
 function markAllDone(){const d={};for(let i=1;i<=TOTAL_Q;i++)d[i]=1;saveProgress(currentClass,d);renderGrid();}
 function saveNote(){localStorage.setItem(noteKey(currentClass),document.getElementById('prog-note').value);}
+function toggleQNav(){
+  const panel = document.getElementById('qnav-panel');
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open')) renderQNav();
+}
+function renderQNav(){
+  const grid = document.getElementById('qnav-grid');
+  grid.innerHTML = '';
+  for(let i=1;i<=38;i++){
+    const btn = document.createElement('button');
+    btn.className = 'qnav-btn';
+    btn.textContent = i;
+    btn.onclick = (()=>{
+      const n = i;
+      return ()=>{
+        toggleQNav();
+        showTab('review');
+        filterQ('all','diff',document.querySelector('.filter-btn'));
+        setTimeout(()=>{
+          const el = document.getElementById('q-'+n);
+          if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('open');}
+        },150);
+      };
+    })();
+    grid.appendChild(btn);
+  }
+}
+
 function toggleDrawer(){document.getElementById('prog-drawer').classList.toggle('open');if(document.getElementById('prog-drawer').classList.contains('open'))renderGrid();}
 
 const groupMap={11:1,12:1,13:1,14:2,15:2,16:3,17:3,18:4,19:4,20:4,21:4,22:5,23:5,24:5,25:6,26:6,27:6,28:7,29:7,30:7,31:8,32:8,33:8,34:8,35:9,36:9,37:9,38:9};
@@ -400,7 +452,9 @@ function showTab(tabId){document.querySelectorAll('section').forEach(s=>s.classL
 function calcScore(){const correct=parseInt(document.getElementById('correct-count').value)||0,essay=parseInt(document.getElementById('essay-score').value)||0,total=(Math.min(correct,38)*2)+Math.min(essay,24);document.getElementById('result-score').innerText=total+' 分';document.getElementById('result-fill').style.width=total+'%';let label='';if(total>=72)label='🎯 頂標水準（前 12%）';else if(total>=64)label='🟢 前標水準（前 25%）';else if(total>=52)label='🟡 均標水準（50%）';else if(total>=38)label='🟠 後標水準（後 25%）';else if(total>=23)label='🔴 底標水準（後 12%）';else label='💡 需要再加油喔！';document.getElementById('result-label').innerText=label;}
 
 function renderQuestions(filterVal,filterType){const list=document.getElementById('q-list');list.innerHTML='';let filtered;if(!filterVal||filterVal==='all'){filtered=qData;}else if(filterType==='diff'){filtered=qData.filter(q=>q.diff===filterVal);}else{filtered=qData.filter(q=>q.texts&&q.texts.some(t=>t.includes(filterVal)));}
-filtered.forEach(q=>{const card=document.createElement('div');card.className='q-card';card.id='q-'+q.n;if(q.group)card.setAttribute('data-group',q.group);let diffLabel=q.diff==='easy'?'★ 基礎':q.diff==='medium'?'★★ 中等':'★★★ 難';const typeTags=(q.texts||[]).filter(t=>Object.keys(typeMap).includes(t)).map(t=>`<span class="type-tag">${t}</span>`).join('');card.innerHTML=`<div class="q-header" onclick="toggleQ(this)"><div class="q-num">${q.n}</div><div class="q-preview">${q.preview}${typeTags?`<div style="margin-top:6px;">${typeTags}</div>`:''}</div><div class="q-meta"><span class="difficulty diff-${q.diff}">${diffLabel}</span><div class="q-answer">${q.ans}</div><svg class="q-toggle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></div></div><div class="q-body"><div class="q-explain"><div class="explain-title">📝 解析 <button class="clean-btn" onclick="cleanRefs(this)">清除 [1] 標記</button></div><div class="explain-text">${q.explain}</div></div><div class="key-point">💡 <strong>複習重點</strong>：${q.keypoint}</div>${q.wrong?`<div class="key-point" style="border-color:var(--red);background:rgba(192,57,43,0.07);">⚠️ <strong>常見錯誤</strong>：${q.wrong}</div>`:''}</div>`;list.appendChild(card);});}
+filtered.forEach(q=>{const card=document.createElement('div');card.className='q-card';card.id='q-'+q.n;if(q.group)card.setAttribute('data-group',q.group);let diffLabel=q.diff==='easy'?'★ 基礎':q.diff==='medium'?'★★ 中等':'★★★ 難';const typeTags=(q.texts||[]).filter(t=>Object.keys(typeMap).includes(t)).map(t=>`<span class="type-tag">${t}</span>`).join('');card.innerHTML=`<div class="q-header" onclick="toggleQ(this)"><div class="q-num">${q.n}</div><div class="q-preview">${q.preview}${typeTags?`<div style="margin-top:6px;">${typeTags}</div>`:''}</div><div class="q-meta"><span class="difficulty diff-${q.diff}">${diffLabel}</span><div class="q-answer">${q.ans}</div><svg class="q-toggle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></div></div><div class="q-body"><div class="q-explain"><div class="explain-title">📝 解析 <button class="clean-btn" onclick="cleanRefs(this)">清除 [1] 標記</button></div><div class="explain-text">${q.explain}</div></div><div class="key-point">💡 <strong>複習重點</strong>：${q.keypoint}</div>${q.wrong?`<div class="key-point" style="border-color:var(--red);background:rgba(192,57,43,0.07);">⚠️ <strong>常見錯誤</strong>：${q.wrong}</div>`:''}</div>`;list.appendChild(card);
+    const h=qHints[q.n];if(h){const opts=card.querySelectorAll('.opt');['A','B','C','D'].forEach((k,i)=>{if(opts[i]&&h[k]){const sp=document.createElement('span');sp.className='opt-hint';sp.textContent='⚠ '+h[k];opts[i].appendChild(sp);}});}});
+}
 
 function cleanRefs(btn){const box=btn.closest('.q-explain').querySelector('.explain-text');box.innerHTML=box.innerHTML.replace(/\s*\[\d+\]/g,'');btn.textContent='已清除 ✓';btn.style.color='var(--green)';btn.style.borderColor='var(--green)';btn.disabled=true;}
 function toggleQ(el){el.closest('.q-card').classList.toggle('open');}
@@ -461,14 +515,14 @@ wrong:`<b>常見錯誤：</b>選(C)誤以為「的過程」不是問題。事實
 texts:['語氣修辭','病句修改','應用文']},
 
 {n:8,ans:'B',diff:'hard',
-preview:`8. 下列「人生態度量表」，選「完全同意」至「完全不同意」依序得4至1分。若僅依〈漁父〉的「漁父」、〈赤壁賦〉的「蘇子」在文中字面所言，設想兩人回答此表的反應，則他們各自的5題分數總和，最可能落在哪個區間？<div style="font-size:0.85em;background:var(--warm);padding:8px;border-radius:6px;margin:8px 0;line-height:1.8;">1.我認為應該順應現實的人生際遇<br>2.我知道如何找到生活方式的平衡點<br>3.我知道人世間的事情是相對而非絕對<br>4.我認為堅守固定原則很重要，不應妥協<br>5.我不能預知命運，但懂得對變化泰然處之</div><div class="options"><div class="opt">(A) 兩人均約5～10</div><div class="opt correct">(B) 兩人均約13～18</div><div class="opt">(C) 漁父約5～10；蘇子約13～18</div><div class="opt">(D) 漁父約13～18；蘇子約5～10</div></div>`,
+preview:`8. 下列「人生態度量表」，選「完全同意」至「完全不同意」依序得4至1分。若僅依〈漁父〉的「漁父」、〈赤壁賦〉的「蘇子」在文中字面所言，設想兩人回答此表的反應，則他們各自的5題分數總和，最可能落在哪個區間？<div style="text-align:center;margin:10px 0;"><img src="8.png" alt="第8題人生態度量表" style="max-width:100%;max-height:340px;border-radius:8px;border:1px solid var(--border);"></div><div style="font-size:0.85em;background:var(--warm);padding:8px;border-radius:6px;margin:8px 0;line-height:1.8;">1.我認為應該順應現實的人生際遇<br>2.我知道如何找到生活方式的平衡點<br>3.我知道人世間的事情是相對而非絕對<br>4.我認為堅守固定原則很重要，不應妥協<br>5.我不能預知命運，但懂得對變化泰然處之</div><div class="options"><div class="opt">(A) 兩人均約5～10</div><div class="opt correct">(B) 兩人均約13～18</div><div class="opt">(C) 漁父約5～10；蘇子約13～18</div><div class="opt">(D) 漁父約13～18；蘇子約5～10</div></div>`,
 explain:`<b>人物分析：</b><br><b>漁父：</b>道家處世哲學，「隨其流揚其波」，勸屈原順應世道。→ 題1「順應現實」✓高分、題2「找到平衡點」✓高分、題3「相對非絕對」✓高分、題4「不應妥協」✗低分（他主張妥協）、題5「泰然處之」✓高分。約4+4+4+1+4=17分。<br><br><b>蘇子：</b>〈赤壁賦〉中蘇軾歷經貶謫，文中「哀吾生之須臾，羨長江之無窮」後到「自其不變者而觀之，則物與我皆無盡也」，最終達到超脫。→ 題1~3同樣符合道家相對論、題5泰然處之，都偏高分。約13～18分。<br><br>兩人都是高分（13～18），故選(B)。`,
 keypoint:`<b>課文理解：</b>漁父是徹底的道家，一切順流；蘇子雖歷悲，但〈赤壁賦〉結局是「物我皆無盡，取之不竭」的超脫，也是高分。兩人都不是固執己見的人（題4低分）。`,
 wrong:`<b>常見錯誤：</b>選(D)以為蘇子悲觀（「哀吾生之須臾」），分數低。但蘇子後半段已轉為超脫，且整體仍順應天道，絕非低分。`,
 texts:['古文翻譯','課文應用','閱讀理解']},
 
 {n:9,ans:'B',diff:'medium',
-preview:`9. 有些祝賀題辭可用於兩種不同情境。下圖有五種情境，直線兩端點間的選項，代表用於兩端情境的題辭，其中最<u>不適當</u>的是：<div style="font-size:0.85em;background:var(--warm);padding:8px;border-radius:6px;margin:8px 0;">(A)出類拔萃：賀歌唱比賽優勝←→賀獲選最佳球員<br>(B)典範長存：賀升官←→賀獲選最佳球員<br>(C)鶯遷喬木：賀新店開幕←→賀搬新家<br>(D)和氣致祥：賀新店開幕←→賀搬新家</div><div class="options"><div class="opt">(A) 出類拔萃</div><div class="opt correct">(B) 典範長存</div><div class="opt">(C) 鶯遷喬木</div><div class="opt">(D) 和氣致祥</div></div>`,
+preview:`9. 有些祝賀題辭可用於兩種不同情境。下圖有五種情境，直線兩端點間的選項，代表用於兩端情境的題辭，其中最<u>不適當</u>的是：<div style="text-align:center;margin:10px 0;"><img src="9.png" alt="第9題題辭情境圖" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid var(--border);"></div><div style="font-size:0.85em;background:var(--warm);padding:8px;border-radius:6px;margin:8px 0;">(A)出類拔萃：賀歌唱比賽優勝←→賀獲選最佳球員<br>(B)典範長存：賀升官←→賀獲選最佳球員<br>(C)鶯遷喬木：賀新店開幕←→賀搬新家<br>(D)和氣致祥：賀新店開幕←→賀搬新家</div><div class="options"><div class="opt">(A) 出類拔萃</div><div class="opt correct">(B) 典範長存</div><div class="opt">(C) 鶯遷喬木</div><div class="opt">(D) 和氣致祥</div></div>`,
 explain:`<b style="color:var(--green)">✔ (B) 最不適當：</b>「典範長存」是哀悼逝者的輓詞，意指去世者的典範精神永遠留存。用於「賀升官」或「賀獲選最佳球員」（均是在世者的喜事），語意完全不符。<br><br><b style="color:var(--red)">✘ (A) 適當：</b>「出類拔萃」指才能出眾，用於賀歌唱比賽優勝或最佳球員均適合。<br><b style="color:var(--red)">✘ (C) 適當：</b>「鶯遷喬木」（良禽擇木而棲），比喻遷居或創業有成，用於新店開幕（新環境）或搬新家均適合。<br><b style="color:var(--red)">✘ (D) 適當：</b>「和氣致祥」指和睦帶來吉祥，用於新店開幕或搬新家均合適。`,
 keypoint:`<b>題辭辨析：</b>「典範長存」是輓聯常用詞，專用於悼念已故者。遇到「典範」一詞要辨認其場合，絕不用於在世者的喜慶場合。`,
 wrong:`<b>常見錯誤：</b>選(C)以為「鶯遷喬木」不能用於新店開幕，但此詞比喻遷往更好的環境，開新店也算進入新天地，可以用。`,
@@ -552,7 +606,7 @@ wrong:`<b>常見錯誤：</b>選(A)，誤以為福鈞隻身行動，但文中明
 texts:['閱讀理解']},
 
 {n:21,ans:'A',diff:'hard',
-preview:`21. 若將福鈞的行程繪成下圖，方框①②③④⑤的年月、地點、事件，哪些與上文所述相符？<div style="font-size:0.85em;background:var(--warm);padding:8px;border-radius:6px;margin:8px 0;line-height:1.8;">①1848.10. 往安徽途中<br>②1849.2. 安徽：研究綠茶<br>③1849.1. 香港：將華德箱送上船<br>④1850.6. 上海：拜訪製茶師<br>⑤1849.11. 往武夷山途中</div><div class="options"><div class="opt correct">(A) ①③</div><div class="opt">(B) ②⑤</div><div class="opt">(C) ①④⑤</div><div class="opt">(D) ②③④</div></div>`,
+preview:`21. 若將福鈞的行程繪成下圖，方框①②③④⑤的年月、地點、事件，哪些與上文所述相符？<div style="text-align:center;margin:10px 0;"><img src="21.png" alt="第21題福鈞行程地圖" style="max-width:100%;max-height:360px;border-radius:8px;border:1px solid var(--border);"></div><div style="font-size:0.85em;background:var(--warm);padding:8px;border-radius:6px;margin:8px 0;line-height:1.8;">①1848.10. 往安徽途中<br>②1849.2. 安徽：研究綠茶<br>③1849.1. 香港：將華德箱送上船<br>④1850.6. 上海：拜訪製茶師<br>⑤1849.11. 往武夷山途中</div><div class="options"><div class="opt correct">(A) ①③</div><div class="opt">(B) ②⑤</div><div class="opt">(C) ①④⑤</div><div class="opt">(D) ②③④</div></div>`,
 explain:`<b>逐一核對：</b><br>①「1848.10.往安徽途中」→ 文中「1848年9月，福鈞…從上海到杭州，<b>約兩個月後</b>來到安徽」，兩個月後約為11月，但途中時間確實涵蓋10月，且「往安徽途中」符合。<b>✓</b><br>②「1849.2.安徽：研究綠茶」→ 文中「農曆新年前幾天回到上海」（1849年初），安徽之行早就在1848年底結束，1849.2不可能還在安徽。<b>✗</b><br>③「1849.1.香港：將華德箱送上船」→ 「福鈞在香港目送它們出海」，時間約1849年農曆新年（1849年初≈1月）。<b>✓</b><br>④「1850.6.上海：拜訪製茶師」→ 製茶師是1851年2月才帶去印度，1850年在上海學習製茶而非拜訪製茶師。<b>✗</b><br>⑤「1849.11.往武夷山途中」→ 「1849年5月，福鈞從浙江寧波前往福建武夷山」，是5月而非11月。<b>✗</b><br><br>正確的是①③。`,
 keypoint:`<b>時間地點核對：</b>①往安徽約10月OK；③1849年初香港送箱OK；②③④⑤時間地點均與文不符。`,
 wrong:`<b>常見錯誤：</b>選(C)，誤以為⑤正確（往武夷山），但文中說的是1849年5月，而非11月。`,
@@ -643,7 +697,7 @@ wrong:`<b>常見錯誤：</b>選(B)以為「一鈞之器容以江漢之流」的
 texts:['閱讀理解','古文翻譯']},
 
 {n:34,ans:'A',diff:'hard',
-preview:`34. 依據下列「彼得原理」示意圖，研判①②兩項推論，是否合理？<div style="font-size:0.85em;background:var(--warm);padding:8px;border-radius:6px;margin:8px 0;">①若員工的專長條件不變，採升職方式獎勵，容易形成「彼得原理」案例。<br>②欲往高階職位發展的員工，應擴充專長，否則將成為「彼得原理」案例。</div><div class="options"><div class="opt correct">(A) ①②皆合理</div><div class="opt">(B) ①②皆不合理</div><div class="opt">(C) ①合理，②不合理</div><div class="opt">(D) ①不合理，②合理</div></div>`,
+preview:`34. 依據下列「彼得原理」示意圖，研判①②兩項推論，是否合理？<div style="font-size:0.85em;background:var(--warm);padding:8px;border-radius:6px;margin:8px 0;">①若員工的專長條件不變，採升職方式獎勵，容易形成「彼得原理」案例。<br>②欲往高階職位發展的員工，應擴充專長，否則將成為「彼得原理」案例。</div><div style="text-align:center;margin:10px 0;"><img src="34.png" alt="第34題彼得原理示意圖" style="max-width:100%;max-height:320px;border-radius:8px;border:1px solid var(--border);"></div><div class="options"><div class="opt correct">(A) ①②皆合理</div><div class="opt">(B) ①②皆不合理</div><div class="opt">(C) ①合理，②不合理</div><div class="opt">(D) ①不合理，②合理</div></div>`,
 explain:`<b>①合理：</b>彼得原理的核心就是——專長不變，不斷升職，終將升到不適任的位置。圖示顯示業務→課長→襄理→經理，每升一級所需專長提高，但若員工專長條件不變（如只有業務能力），升到課長就不適任了。①符合圖示邏輯。<br><br><b>②合理：</b>若員工想往高階職位發展，必須擴充與高階職位相符的專長（圖示中高階職位需要更高的專長）。不擴充專長而升職，就會落入不適任狀態（彼得原理）。②也符合圖示邏輯。`,
 keypoint:`<b>圖示解讀：</b>圖示顯示每一職級（業務/課長/襄理/經理）所需的專長條件不同，越高階要求越高。不提升專長就升職，必然會在某個職級不適任。`,
 wrong:`<b>常見錯誤：</b>選(C)認為②不合理，以為「擴充專長就不會有彼得原理」，但②說的是「不擴充專長否則會成為案例」，這個邏輯完全符合圖示。`,
@@ -677,6 +731,47 @@ keypoint:`<b>文本比對：</b>兩個文本都利用貓眼瞳孔大小推斷時
 wrong:`<b>常見錯誤：</b>選(C)以為②不正確，誤以為狄仁傑的推斷方向不同。但文中明確說「作畫時間絕非如真智所言」——狄仁傑確實是以「畫中物體時間」＝「繪圖者作畫時間」為推論基礎。`,
 texts:['閱讀理解','古文典故','寫作手法']}
 ];
+
+  const qHints={
+  1:{B:'字形複雜而起疑，但怵惕確實正確',C:'闌珊筆畫多，容易懷疑，實為正確',D:'焦灼是常見詞，確實無誤'},
+  2:{A:'忽略更在古文有多義，僅以現代語感判斷',B:'將兩個固都理解為動詞鞏固，未區分詞性',D:'以為兩者都是勇於表達，未察覺左傳的敢為謙詞'},
+  3:{A:'過從甚密多指人際往來，描述書體與文意關係較不自然',B:'兩空都選錯，表示兩個成語都未精確理解',D:'第二空一息尚存語意偏消極，不符合句子的因果邏輯'},
+  4:{A:'跳段閱讀，未注意⑤的故表結果，不能放在②之前',C:'忽略③是轉折句，反觀後應接魚塭的優點',D:'將⑤放在最前，但⑤是魚塘問題的結果句，邏輯顛倒'},
+  5:{A:'同性質比較（收入 vs 收入），未抓到不同性質的關鍵',B:'烏亮程度的比較，仍是同性質（頭髮 vs 頭髮）',C:'品行程度的比較，也是同性質'},
+  6:{B:'第二空混淆規定與要點，忘記廢止的是原本的規定',C:'系統是軟體不含條文，無法用該系統中有關條文',D:'要點是正在施行的規範，不可能被廢止'},
+  7:{A:'修改方向正確，①確實有病句（成分不完整）',B:'修改建議合理，②確實敘述不清',C:'③的過程確實冗贅應刪'},
+  8:{A:'誤以為蘇子悲觀得分低，忽略赤壁賦後半的超脫轉折',C:'混淆漁父與蘇子的哲學立場',D:'誤以為蘇子固執（題4高分）而漁父通達（高分），邏輯顛倒'},
+  9:{A:'出類拔萃強調才能出眾，兩個比賽情境均適合',C:'未理解鶯遷喬木可引申至任何遷往更好環境的情境',D:'和氣致祥祝福和諧順利，開幕與搬家均適用'},
+  10:{A:'將一則二則的則誤解為語意轉折',C:'誤判甲的則發票為轉折，但這是條件句',D:'誤判甲為解釋義，但開車時則明顯是條件'},
+  11:{A:'過度推論，作者只說應用文為主，並非要學生了解文學文',B:'作者在三方面並重，並非只重章法',D:'混淆一概不用與不用不合義理的典故，過度概括'},
+  12:{B:'忽略文本中明確的批評與表格說明',C:'錯誤判斷②，以為文彩是必要而非其次',D:'錯誤判斷①，誤以為作者強調文學文的必要性'},
+  13:{A:'臺煤減稅片是公文奏折，屬應用文教材',B:'天工開物是技術實用文，屬職業相關讀物',D:'清代臺灣鐵路買票收費章程是規章，是應用文範本'},
+  14:{B:'時序理解錯誤：傍晚雨停後才出門，並非趕在雷雨前',C:'雙踝皆沒只是腳踝陷入泥水，並非半身落水',D:'是主動向花農乞花，並非婉謝饋贈'},
+  15:{A:'忽略鄉人得無怨乎的語氣，誤解為純粹讚美',C:'文中並未說作者希望改種荸薺，這是過度推論',D:'人心不如荷花是額外添加的主題，文中無此意'},
+  16:{A:'混淆華德的身分和研究動機：他是為保護植物才發明',B:'美索不達米亞是玻璃器皿的起源，與華德箱原理無關',D:'是讓植株（活體）不枯萎，而非大量採集種子'},
+  17:{A:'縮短時間並非本文重點，且文中並未強調時間效益',B:'藥物是金雞納樹的功用，而非華德箱本身的意義',C:'農業發展過於片面，殖民歷史才是文末的核心結論'},
+  18:{A:'表格顯示茶葉占88%，代表還有12%其他貨物，並非只有茶葉',B:'阿薩姆品質不理想說明本來就有茶樹，並非原無茶樹',C:'福鈞是旅居中國的蘇格蘭人，並非長住香港'},
+  19:{A:'書信有工作目標，但沒有預計完成時間',C:'只說年薪500英磅，無從比較是否為數倍',D:'是董事會認為有利的開銷才支付，有條件限制，非所有開銷'},
+  20:{A:'文中說透過洋行買辦雇了兩名僕人，並非隻身行動',B:'初次來中國就已知道紅綠茶關係，且兩者有發酵差別',C:'福鈞在香港是目送船出海，自己並未轉赴印度'},
+  21:{B:'安徽之行在1848年底結束，1849.2不可能還在安徽研究綠茶',C:'③香港送箱OK，但誤以為②也對',D:'④1850.6拜訪製茶師與文不符（帶製茶師是1851年才去印度）'},
+  22:{A:'西廂是典史（官吏），東廂是饑民，並非主僕關係',B:'東廂鬼手縮是因為一文錢已滿足，並非不願乞討',C:'文中沒有提到只要食物，是過度推論'},
+  23:{B:'混淆①②的情緒：謎底揭曉應是訝異而非感嘆',C:'疑太溫和且謎底已解開；懼不符合陳景初素負膽力的人設',D:'顛倒兩字順序，①應是訝異（發現真相），②才是感慨（評論官吏）'},
+  24:{A:'貧富差距是背景，文章諷刺的是具體的縣衙典史官吏',B:'饑民流離是背景情境，不是西廂棺木描寫的核心主旨',D:'「朝廷」太廣泛，文章針對的是縣衙小吏（典史），非整個朝廷'},
+  25:{A:'天工開物提到鋸子分類，但留言並未說它首創架構',B:'留言明確否定魯班發明的說法',C:'細齒鋸不適合大尺寸，但這是細齒鋸的限制，非手工具全部'},
+  26:{A:'誤判②為錯誤，但文中缺少各國出口總值排行，無法確定',C:'①確實正確（九成小廠＋協力廠互助）',D:'誤判②為可確定，但文中缺少各國出口總值比較'},
+  27:{A:'兩年衰退後成長的描述正確（108年-1.8%，109年-0.9%）',B:'40.6%+20.5%=61.1%，確實超過六成，正確',D:'歐盟成長33.3%大於美國26.9%，幅度確實超越美國，正確'},
+  28:{A:'民心向背在文中未提及，添加了文外概念',B:'先正民心也是文外概念，文章談的是礦產管理',D:'珍惜民力主語弄錯，文章強調礦產善用而非民力'},
+  29:{B:'乙文積極主張廣銷，並非說所費不貲',C:'甲文說臺地炊爨禦寒無藉於煤，並非認為滯銷有礙民生',D:'甲乙兩個判斷都選錯'},
+  30:{A:'甲文確實用對比：南北各省 vs 臺地，正確',B:'若出口暢旺確實是假設推論，正確',C:'坐視上等→次等→下等→自焚→累及全埕確實是遞進，正確'},
+  31:{A:'才德兼備在兩文中均未提及',C:'一視同仁與兩人的觀點相反，他們強調依才能差異分配',D:'升遷原則在唐太宗文中未提，特雷默更批評按績效年資升遷'},
+  32:{B:'文中劉基沒有說庸材比良材好用，這是誤讀',C:'劉基並未談大材小用的情況',D:'劉基的重點是良材的廣泛利用，而非材大難用的問題'},
+  33:{A:'唐太宗的適才適所確實能讓員工適任，正確',B:'一鈞之器比喻能力不足以承擔職責，正確',D:'不適任者降低績效確實可能引發衝突，正確'},
+  34:{B:'兩項均合理，誤以為②不成立',C:'②確實合理：不擴充專長升職即落入不適任',D:'①確實合理：專長不變升職必然在某職級不適任'},
+  35:{B:'文中未說玉鏡宣講時真智在場，這是無法確知的訊息',C:'真智尚未坦承，在走上露臺時已跌落',D:'孫天師涉嫌可疑，但文中並未明確確認他殺人'},
+  36:{A:'真智的行動是受害者而非用神情鋪墊的角色',B:'玉鏡已死，並未在本段出現神情描寫',D:'狄仁傑的神情是偵探洞察力的展現，而非為下文預做鋪墊'},
+  37:{A:'真智欲述舊事確實製造懸念，正確',B:'整體以順時敘述為主，只有推理那段回溯，正確',C:'全文確實以外在言語動作表情刻畫人物，正確'},
+  38:{B:'兩項均正確，誤判',C:'誤以為②不正確，但狄仁傑確實以畫中時間推斷作畫時間',D:'誤以為①不正確，但吳丞相推斷的確是畫中物體的時間'}
+};
 
   const passagesData = {
   'p11-13': {
@@ -717,7 +812,7 @@ texts:['閱讀理解','古文典故','寫作手法']}
   },
   'p18-21': {
     title: '📖 閱讀四：福鈞盜茶（第 18–21 題）',
-    content: `<p>蘇格蘭園藝家羅伯‧福鈞（Robert Fortune）從中國送出的華德箱，重繪了全球茶葉貿易版圖。</p>
+    content: `<div style="text-align:center;margin:10px 0;"><img src="18-21A.png" alt="閱讀四圖A" style="max-width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;"><br><img src="18-21B.png" alt="閱讀四圖B" style="max-width:100%;border-radius:8px;border:1px solid var(--border);"></div><p>蘇格蘭園藝家羅伯‧福鈞（Robert Fortune）從中國送出的華德箱，重繪了全球茶葉貿易版圖。</p>
 <p>英國東印度公司於1834年失去將中國茶葉輸入英國的壟斷權後，並未停止在印度生產茶葉的企圖。由於印度阿薩姆的茶葉品質不理想，他們找上1842至1845年間曾旅居中國的福鈞。</p>
 <p><b>【東印度公司致福鈞函（1848.5.17）】</b><br>先生，羅伊爾醫師日前曾代表本公司董事會，請您前往中國取得上等茶苗與種子，送至加爾各答。董事會已同意支付您每年薪資500英磅，從出發日起算，至歸國為止，並另提供往返交通費，以及在中國取得茶苗與種子的各項費用。凡董事會認為有利拓展印度茶園的開銷，亦均由本公司支付。本公司希望您6月20日前動身，將安排半島東方公司的輪船，以便秋季抵達中國。</p>
 <hr style="border:none;border-top:1px dashed var(--border);margin:12px 0;">
@@ -736,7 +831,7 @@ texts:['閱讀理解','古文典故','寫作手法']}
   },
   'p25-27': {
     title: '📖 閱讀六：DIY手作補給站（第 25–27 題）',
-    content: `<p><b>DIY 手作補給站留言板</b></p>
+    content: `<div style="text-align:center;margin:10px 0;"><img src="25-27A.png" alt="DIY留言板" style="max-width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;"><br><img src="25-27B.png" alt="手工具出口圖表" style="max-width:100%;border-radius:8px;border:1px solid var(--border);"></div><p><b>DIY 手作補給站留言板</b></p>
 <p>學木工才知道，粗齒鋸因齒距寬，鋸切速度較快；細齒鋸則切面加工效果較好，但不適合鋸切大尺寸木料。</p>
 <p>鋸子是常見的手工具，鉗、鎚、起子、扳手……也是。</p>
 <p>聽說鋸子是魯班發明的？——上古早就有石頭、青銅做的鋸子了。</p>
@@ -800,6 +895,92 @@ window.onload=()=>{
     renderQuestions('all','diff');
   }
 };
+</script>
+
+<script>
+// ======= [核心邏輯與渲染] =======
+let currentType = 'all';
+
+// 1. 頁籤切換
+function showTab(tabId) {
+    // 隱藏所有內容區塊
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    // 取消所有按鈕的高亮
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // 顯示點選的區塊
+    const target = document.getElementById('tab-' + tabId);
+    if (target) {
+        target.classList.add('active');
+    }
+    // 讓當前點擊的按鈕變色
+    if (window.event && window.event.currentTarget) {
+        window.event.currentTarget.classList.add('active');
+    }
+}
+
+// 2. 題目點擊展開 (監聽整個 document 效率更高)
+document.addEventListener('click', function(e) {
+    const header = e.target.closest('.q-header');
+    if (header) {
+        const card = header.parentElement;
+        card.classList.toggle('open');
+    }
+});
+
+// 3. 成績計算
+function calcScore() {
+    const correctInput = document.getElementById('correct-count');
+    const essayInput = document.getElementById('essay-score');
+    
+    const correctCount = parseInt(correctInput.value) || 0;
+    const essayScore = parseInt(essayInput.value) || 0;
+    
+    const total = (correctCount * 2) + essayScore;
+    
+    document.getElementById('result-score').innerText = total + " 分";
+    
+    let label = "";
+    if (total >= 72) label = "🎯 達到【頂標】";
+    else if (total >= 64) label = "✨ 達到【前標】";
+    else if (total >= 52) label = "👍 達到【均標】";
+    else if (total >= 38) label = "📚 達到【後標】";
+    else label = "💪 再接再厲！";
+    
+    document.getElementById('result-label').innerText = label;
+    document.getElementById('result-fill').style.width = Math.min(total, 100) + "%";
+}
+
+// 4. 投屏模式
+function toggleProjMode() {
+    document.body.classList.toggle('proj-mode');
+}
+</script>
+
+<script>
+  // 覆蓋錯誤的 showTab，讓它能正確對應 <section> 標籤
+  window.showTab = function(tabId) {
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    const target = document.getElementById('tab-' + tabId);
+    if (target) target.classList.add('active');
+    
+    const btns = document.querySelectorAll('.tab-btn');
+    if(tabId === 'scores') btns[0].classList.add('active');
+    if(tabId === 'review') btns[1].classList.add('active');
+    if(tabId === 'groups') btns[2].classList.add('active');
+  };
+
+  // 覆蓋舊的 inline toggleQ 函數（將其設為空）
+  // 這樣就只會由最後一段的 document.addEventListener 來執行開關，避免「打開又秒關閉」的衝突
+  window.toggleQ = function(el) {
+    // 留空，不執行任何動作
+  };
 </script>
 </body>
 </html>
